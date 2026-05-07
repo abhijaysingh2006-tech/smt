@@ -1,5 +1,5 @@
-Flask==3.0.3
-gunicorn
-google-generativeai
+Flask
+google-genai
 python-dotenv
 fpdf
+openai
