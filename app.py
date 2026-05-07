@@ -9,7 +9,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from fpdf import FPDF
 
-# Load environment variables
+# Load env
 load_dotenv()
 
 app = Flask(__name__)
@@ -42,12 +42,11 @@ questions = [
 
 
 def generate_pdf(content, filename):
-    """Create PDF from text safely"""
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
-    safe_content = content.encode('latin-1', 'replace').decode('latin-1')
+    safe_content = content.encode("latin-1", "replace").decode("latin-1")
     pdf.multi_cell(0, 10, txt=safe_content)
     pdf.output(filename)
 
@@ -59,17 +58,16 @@ def home():
 
 @app.route("/submit", methods=["POST"])
 def submit():
-    intern_name = request.form.get("intern_name")
-    project_name = request.form.get("project_name")
+    try:
+        intern_name = request.form.get("intern_name") or "Unknown"
+        project_name = request.form.get("project_name") or "Project"
 
-    answers = []
+        answers = []
+        for i, q in enumerate(questions):
+            answer = request.form.get(f"q{i}") or ""
+            answers.append((q, answer))
 
-    for i, q in enumerate(questions):
-        answer = request.form.get(f"q{i}")
-        answers.append((q, answer))
-
-    # Build prompt
-    prompt = f"""
+        prompt = f"""
 Create a professional internship handover document.
 
 Intern Name: {intern_name}
@@ -78,60 +76,59 @@ Project Name: {project_name}
 Questions and Answers:
 """
 
-    for q, a in answers:
-        prompt += f"\nQuestion: {q}\nAnswer: {a}\n"
+        for q, a in answers:
+            prompt += f"\nQuestion: {q}\nAnswer: {a}\n"
 
-    # -----------------------------
-    # OpenRouter AI call
-    # -----------------------------
-    response = client.chat.completions.create(
-        model="google/gemini-2.5-flash",
-        messages=[
-            {
-                "role": "system",
-                "content": "You create professional, clear internship handover documents."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
+        # -----------------------------
+        # AI CALL (SAFE)
+        # -----------------------------
+        response = client.chat.completions.create(
+            model="openai/gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You create clear, professional internship handover documents."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
 
-    ai_summary = response.choices[0].message.content
+        ai_summary = response.choices[0].message.content
 
-    # Save outputs folder
-    os.makedirs("outputs", exist_ok=True)
-    date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        os.makedirs("outputs", exist_ok=True)
+        date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    # Save TXT
-    txt_filename = f"outputs/handover_{intern_name}_{date}.txt"
-    with open(txt_filename, "w", encoding="utf-8") as file:
-        file.write(ai_summary)
+        txt_filename = f"outputs/handover_{intern_name}_{date}.txt"
+        pdf_filename = f"outputs/handover_{intern_name}_{date}.pdf"
 
-    # Save PDF
-    pdf_filename = f"outputs/handover_{intern_name}_{date}.pdf"
-    generate_pdf(ai_summary, pdf_filename)
+        with open(txt_filename, "w", encoding="utf-8") as f:
+            f.write(ai_summary)
 
-    # Send email
-    try:
-        send_email(intern_name, pdf_filename)
-        email_status = "Email sent successfully with PDF attached."
+        generate_pdf(ai_summary, pdf_filename)
+
+        # Email (safe)
+        try:
+            send_email(intern_name, pdf_filename)
+            email_status = "Email sent successfully."
+        except Exception as e:
+            email_status = f"Email failed: {str(e)}"
+
+        return f"""
+        <h1>✅ Handover Submitted Successfully!</h1>
+        <p>Files generated successfully.</p>
+        <p>{email_status}</p>
+        """
+
     except Exception as e:
-        email_status = f"Failed to send email: {e}"
-
-    return f"""
-    <h1>✅ Handover Submitted Successfully!</h1>
-    <p>Document saved as TXT and PDF.</p>
-    <p>{email_status}</p>
-    """
+        return f"<h1>❌ Server Error</h1><p>{str(e)}</p>"
 
 
 def send_email(intern_name, pdf_filename):
-    subject = f"Handover Document - {intern_name}"
-
     msg = MIMEMultipart()
-    msg["Subject"] = subject
+    msg["Subject"] = f"Handover Document - {intern_name}"
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = RECEIVER_EMAIL
 
