@@ -1,5 +1,5 @@
-Flask
-google-genai
+flask
+openai
 python-dotenv
 fpdf
-openai
+gunicorn
