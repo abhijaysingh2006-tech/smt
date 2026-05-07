@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Handover Portal</title>
+
+    <style>
+        /* Modern Premium Aesthetic */
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-gradient: linear-gradient(-45deg, #0f172a, #1e1b4b, #172554, #0f172a);
+            --card-bg: rgba(255, 255, 255, 0.98);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-primary: #4f46e5;
+            --accent-hover: #4338ca;
+            --error-color: #ef4444;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 750px;
+            padding: 50px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .top-section {
+            text-align: center;
+            margin-bottom: 35px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .top-section h1 {
+            font-size: 32px;
+            color: var(--text-main);
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+        }
+
+        .top-section p {
+            color: var(--text-muted);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .progress-wrapper {
+            margin-bottom: 40px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #f1f5f9;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4f46e5, #06b6d4);
+            border-radius: 20px;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .step-count {
+            text-align: right;
+            margin-top: 10px;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .form-wrapper {
+            position: relative;
+            min-height: 300px;
+        }
+
+        .question-step {
+            position: absolute;
+            width: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(40px) scale(0.95);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .question-step.active {
+            position: relative;
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0) scale(1);
+            transition-delay: 0.1s;
+        }
+
+        .question-step.exiting-prev {
+            transform: translateX(-40px) scale(0.95);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 12px;
+            font-size: 19px;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 18px;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            outline: none;
+            font-size: 16px;
+            color: var(--text-main);
+            transition: all 0.3s ease;
+            background: #f8fafc;
+            margin-bottom: 20px;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: var(--accent-primary);
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+            transform: translateY(-2px);
+        }
+
+        textarea {
+            min-height: 160px;
+            resize: vertical;
+        }
+
+        .error-shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+            border-color: var(--error-color) !important;
+            background: #fef2f2 !important;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-2px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(4px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-6px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(6px, 0, 0);
+            }
+        }
+
+        .error-msg {
+            color: var(--error-color);
+            font-size: 14px;
+            margin-top: -12px;
+            margin-bottom: 20px;
+            display: none;
+            font-weight: 600;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .error-msg.show {
+            opacity: 1;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-prev {
+            background: #f1f5f9;
+            color: var(--text-main);
+        }
+
+        .btn-prev:hover {
+            background: #e2e8f0;
+            transform: translateX(-3px);
+        }
+
+        .btn-next,
+        .btn-submit {
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-next:hover,
+        .btn-submit:hover {
+            background: var(--accent-hover);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6);
+        }
+
+        .tip-box {
+            background: linear-gradient(to right, #eff6ff, #f8fafc);
+            border-left: 4px solid var(--accent-primary);
+            padding: 16px 20px;
+            border-radius: 0 12px 12px 0;
+            margin-bottom: 35px;
+            color: #1e40af;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 25px;
+                border-radius: 20px;
+            }
+
+            .top-section h1 {
+                font-size: 26px;
+            }
+
+            .btn-group {
+                flex-direction: column-reverse;
+            }
+
+            button {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .btn-prev:hover {
+                transform: translateY(3px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="top-section">
+            <h1>Internship Knowledge Transfer</h1>
+            <p>Ensure a seamless transition by documenting critical project parameters, ongoing tasks, and operational
+                insights.</p>
+        </div>
+
+        <div class="tip-box">
+            ✨ Precision matters. Please be as detailed as possible in your responses to help the next intern.
+        </div>
+
+        <div class="progress-wrapper">
+            <div class="progress-bar">
+                <div class="progress" id="progress"></div>
+            </div>
+            <div class="step-count" id="step-indicator">Step 1 of X</div>
+        </div>
+
+        <form action="/submit" method="POST" id="handoverForm" class="form-wrapper">
+
+            <div class="question-step active">
+                <label>Intern Name</label>
+                <input type="text" name="intern_name" placeholder="E.g., Jane Doe" required>
+                <div class="error-msg">⚠️ This field is required to proceed.</div>
+
+                <div class="btn-group">
+                    <button type="button" class="btn-next" onclick="nextStep()">Continue <span>→</span></button>
+                </div>
+            </div>
+
+            <div class="question-step">
+                <label>Project Name</label>
+                <input type="text" name="project_name" placeholder="E.g., Q3 Cloud Migration" required>
+                <div class="error-msg">⚠️ This field is required to proceed.</div>
+
+                <div class="btn-group">
+                    <button type="button" class="btn-prev" onclick="prevStep()"><span>←</span> Back</button>
+                    <button type="button" class="btn-next" onclick="nextStep()">Continue <span>→</span></button>
+                </div>
+            </div>
+
+            {% for question in questions %}
+            <div class="question-step">
+                <label>{{ question }}</label>
+                <textarea name="q{{ loop.index0 }}" placeholder="Enter detailed information..." required></textarea>
+                <div class="error-msg">⚠️ Please provide an answer before continuing.</div>
+
+                <div class="btn-group">
+                    <button type="button" class="btn-prev" onclick="prevStep()"><span>←</span> Back</button>
+
+                    {% if loop.last %}
+                    <button type="submit" class="btn-submit" onclick="return validateSubmit()">Submit Handover
+                        ✓</button>
+                    {% else %}
+                    <button type="button" class="btn-next" onclick="nextStep()">Continue <span>→</span></button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+        </form>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        const steps = document.querySelectorAll(".question-step");
+        const progress = document.getElementById("progress");
+        const stepIndicator = document.getElementById("step-indicator");
+
+        function updateUI(oldIndex, newIndex, direction) {
+            steps.forEach((step, i) => {
+                step.classList.remove("active", "exiting-prev");
+                step.style.display = "none";
+
+                if (i === newIndex) {
+                    step.style.display = "block";
+                    setTimeout(() => { step.classList.add("active"); }, 10);
+                } else if (i === oldIndex && direction === 'next') {
+                    step.style.display = "block";
+                    step.classList.add("exiting-prev");
+                    setTimeout(() => { step.style.display = "none"; }, 500);
+                }
+            });
+
+            const progressPercent = ((newIndex + 1) / steps.length) * 100;
+            progress.style.width = progressPercent + "%";
+            stepIndicator.innerText = `Step ${newIndex + 1} of ${steps.length}`;
+        }
+
+        function validateCurrentStep() {
+            const currentStepDiv = steps[currentStep];
+            const inputField = currentStepDiv.querySelector('input, textarea');
+            const errorMsg = currentStepDiv.querySelector('.error-msg');
+
+            if (!inputField.value.trim()) {
+                inputField.classList.add('error-shake');
+                errorMsg.style.display = 'flex';
+
+                setTimeout(() => { errorMsg.classList.add('show'); }, 10);
+                setTimeout(() => { inputField.classList.remove('error-shake'); }, 500);
+                return false;
+            }
+
+            errorMsg.classList.remove('show');
+            setTimeout(() => { errorMsg.style.display = 'none'; }, 300);
+            inputField.classList.remove('error-shake');
+            return true;
+        }
+
+        function nextStep() {
+            if (validateCurrentStep()) {
+                if (currentStep < steps.length - 1) {
+                    let oldStep = currentStep;
+                    currentStep++;
+                    updateUI(oldStep, currentStep, 'next');
+                }
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 0) {
+                const currentStepDiv = steps[currentStep];
+                const errorMsg = currentStepDiv.querySelector('.error-msg');
+                errorMsg.classList.remove('show');
+                errorMsg.style.display = 'none';
+
+                let oldStep = currentStep;
+                currentStep--;
+                updateUI(oldStep, currentStep, 'prev');
+            }
+        }
+
+        function validateSubmit() {
+            return validateCurrentStep();
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' && event.target.tagName === 'INPUT') {
+                event.preventDefault();
+                nextStep();
+            }
+        });
+
+        // Initialize UI immediately
+        steps.forEach(step => step.style.display = "none");
+        steps[0].style.display = "block";
+        setTimeout(() => { steps[0].classList.add("active"); }, 10);
+
+        progress.style.width = (1 / steps.length * 100) + "%";
+        stepIndicator.innerText = `Step 1 of ${steps.length}`;
+
+    </script>
+</body>
+
+</html>
