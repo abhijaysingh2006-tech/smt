@@ -15,9 +15,20 @@ load_dotenv()
 
 app = Flask(__name__)
 
+<<<<<<< Updated upstream
 # Initialize the NEW Gemini Client
 # It automatically picks up the GEMINI_API_KEY from your environment variables
 client = genai.Client()
+=======
+# Configure Gemini API
+genai.configure(api_key=os.getenv("OPENROUTER_API_KEY"))
+
+# Initialize the model using the current supported version
+model = genai.GenerativeModel(
+    model_name="gemini-2.5-flash",
+    system_instruction="You create professional project handover documents."
+)
+>>>>>>> Stashed changes
 
 # Email config
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
@@ -138,4 +149,5 @@ def send_email(content, intern_name, pdf_filename):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
