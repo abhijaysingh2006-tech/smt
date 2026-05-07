@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 from datetime import datetime
 import os
@@ -14,14 +15,9 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Configure Gemini API
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-# Initialize the model using the current supported version
-model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash",
-    system_instruction="You create professional project handover documents."
-)
+# Initialize the NEW Gemini Client
+# It automatically picks up the GEMINI_API_KEY from your environment variables
+client = genai.Client()
 
 # Email config
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
@@ -48,11 +44,7 @@ def generate_pdf(content, filename):
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
-    # AI models sometimes output special Unicode characters (like fancy quotes or emojis).
-    # The default FPDF font only supports Latin-1, so we safely convert the text here.
     safe_content = content.encode('latin-1', 'replace').decode('latin-1')
-
-    # multi_cell automatically wraps text to the next line
     pdf.multi_cell(0, 10, txt=safe_content)
     pdf.output(filename)
 
@@ -86,8 +78,14 @@ def submit():
     for q, a in answers:
         prompt += f"\nQuestion: {q}\nAnswer: {a}\n"
 
-    # AI Summary using Gemini
-    response = model.generate_content(prompt)
+    # AI Summary using the NEW Gemini SDK
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction="You create professional project handover documents.",
+        ),
+    )
     ai_summary = response.text
 
     # Ensure the outputs directory exists
@@ -120,24 +118,20 @@ def submit():
 def send_email(content, intern_name, pdf_filename):
     subject = f"Handover Document - {intern_name}"
 
-    # Use MIMEMultipart to allow attachments
     msg = MIMEMultipart()
     msg["Subject"] = subject
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = RECEIVER_EMAIL
 
-    # Attach the email body text
     body = f"Please find the attached handover document for {intern_name}.\n\n"
     msg.attach(MIMEText(body, "plain"))
 
-    # Attach the PDF file
     with open(pdf_filename, "rb") as f:
         attach = MIMEApplication(f.read(), _subtype="pdf")
         attach.add_header('Content-Disposition', 'attachment',
                           filename=os.path.basename(pdf_filename))
         msg.attach(attach)
 
-    # Send the email
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         smtp.send_message(msg)
