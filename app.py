@@ -146,5 +146,5 @@ def send_email(intern_name, pdf_filename):
 
 if __name__ == "__main__":
     # Ensure Railway's dynamic port is used
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
