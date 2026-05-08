@@ -84,7 +84,7 @@ Questions and Answers:
         response = client.chat.completions.create(
             # OpenRouter uses format: "provider/model-name"
             # You can change this to "anthropic/claude-3-haiku" or "meta-llama/llama-3-8b-instruct"
-            model="google/gemini-2.5-flash",
+            model="google/gemini-2.0-flash",
             messages=[
                 {"role": "system", "content": "You create clear, professional internship handover documents."},
                 {"role": "user", "content": prompt}
