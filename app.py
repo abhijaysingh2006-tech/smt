@@ -50,10 +50,24 @@ def home():
 @app.route("/submit", methods=["POST"])
 def submit():
     try:
-        # Get Key and check if it exists
-        api_key = os.getenv("OPENROUTER_API_KEY")
+        # --- BULLETPROOF CONFIG CHECK ---
+        # Look for the key under both possible names
+        api_key = os.environ.get(
+            "OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY")
+
         if not api_key:
-            return "<h1>❌ Configuration Error</h1><p>API Key is missing from Railway Variables.</p>"
+            # This helps us debug by showing exactly what variables the server DOES see
+            # We filter for 'KEY' or 'API' so we don't leak private system info
+            visible_vars = [
+                k for k in os.environ.keys() if "KEY" in k or "API" in k]
+            return f"""
+            <div style="font-family:sans-serif; padding:20px; border:2px solid red; background:#fff0f0;">
+                <h1>❌ Configuration Error</h1>
+                <p><strong>Reason:</strong> API Key is missing from Railway Variables.</p>
+                <p><strong>Variables the server can see:</strong> {visible_vars}</p>
+                <p><em>Action: Go to Railway > Variables and ensure 'OPENROUTER_API_KEY' is added.</em></p>
+            </div>
+            """
 
         intern_name = request.form.get("intern_name") or "Unknown"
         project_name = request.form.get("project_name") or "Project"
@@ -67,10 +81,7 @@ def submit():
         for q, a in answers:
             prompt += f"\nQuestion: {q}\nAnswer: {a}\n"
 
-        # -----------------------------
-        # OPENROUTER AI CALL (FORCED)
-        # -----------------------------
-        # Initialize inside the route to ensure it catches the env variable
+        # Initialize client with the validated key
         client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=api_key,
@@ -86,18 +97,16 @@ def submit():
                 "HTTP-Referer": "https://railway.app",
                 "X-Title": "Intern Handover App"
             },
-            timeout=60.0  # Don't wait forever
+            timeout=60.0
         )
         ai_summary = response.choices[0].message.content
 
-        # Create outputs directory
         os.makedirs("outputs", exist_ok=True)
         date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         pdf_filename = f"outputs/handover_{intern_name}_{date}.pdf"
 
         generate_pdf(ai_summary, pdf_filename)
 
-        # Email
         try:
             send_email(intern_name, pdf_filename)
             email_status = "Email sent successfully."
@@ -136,5 +145,6 @@ def send_email(intern_name, pdf_filename):
 
 
 if __name__ == "__main__":
+    # Ensure Railway's dynamic port is used
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
