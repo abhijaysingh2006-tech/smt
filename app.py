@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-from openai import OpenAI
+import google.generativeai as genai
 from dotenv import load_dotenv
 from datetime import datetime
 import os
@@ -15,12 +15,9 @@ load_dotenv()
 app = Flask(__name__)
 
 # -----------------------------
-# OpenRouter setup
+# Gemini setup
 # -----------------------------
-client = OpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
-)
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 # Email config
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
@@ -82,21 +79,10 @@ Questions and Answers:
         # -----------------------------
         # AI CALL (SAFE)
         # -----------------------------
-        response = client.chat.completions.create(
-            model="openai/gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You create clear, professional internship handover documents."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        )
-
-        ai_summary = response.choices[0].message.content
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        full_prompt = "You create clear, professional internship handover documents.\n\n" + prompt
+        response = model.generate_content(full_prompt)
+        ai_summary = response.text
 
         os.makedirs("outputs", exist_ok=True)
         date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
