@@ -74,24 +74,20 @@ Questions and Answers:
         # -----------------------------
         # OPENROUTER AI CALL
         # -----------------------------
-        # Initialize the OpenAI client pointed at OpenRouter
         client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=os.getenv("OPENROUTER_API_KEY"),
         )
 
-        # Make the request to OpenRouter
         response = client.chat.completions.create(
-            # OpenRouter uses format: "provider/model-name"
-            # You can change this to "anthropic/claude-3-haiku" or "meta-llama/llama-3-8b-instruct"
-            model="google/gemini-2.0-flash",
+            # Using OpenRouter's auto-router for free models so it never breaks!
+            model="openrouter/free",
             messages=[
                 {"role": "system", "content": "You create clear, professional internship handover documents."},
                 {"role": "user", "content": prompt}
             ],
-            # Optional but recommended OpenRouter headers
             extra_headers={
-                "HTTP-Referer": "http://localhost:5000",  # Change to your Railway URL later
+                "HTTP-Referer": "http://localhost:5000",
                 "X-Title": "Intern Handover App"
             }
         )
@@ -108,7 +104,7 @@ Questions and Answers:
 
         generate_pdf(ai_summary, pdf_filename)
 
-        # Email (safe)
+        # Email
         try:
             send_email(intern_name, pdf_filename)
             email_status = "Email sent successfully."
