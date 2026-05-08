@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-import google.generativeai as genai
+from openai import OpenAI
 from dotenv import load_dotenv
 from datetime import datetime
 import os
@@ -13,11 +13,6 @@ from fpdf import FPDF
 load_dotenv()
 
 app = Flask(__name__)
-
-# -----------------------------
-# Gemini setup
-# -----------------------------
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 # Email config
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
@@ -77,12 +72,30 @@ Questions and Answers:
             prompt += f"\nQuestion: {q}\nAnswer: {a}\n"
 
         # -----------------------------
-        # AI CALL (SAFE)
+        # OPENROUTER AI CALL
         # -----------------------------
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        full_prompt = "You create clear, professional internship handover documents.\n\n" + prompt
-        response = model.generate_content(full_prompt)
-        ai_summary = response.text
+        # Initialize the OpenAI client pointed at OpenRouter
+        client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+        )
+
+        # Make the request to OpenRouter
+        response = client.chat.completions.create(
+            # OpenRouter uses format: "provider/model-name"
+            # You can change this to "anthropic/claude-3-haiku" or "meta-llama/llama-3-8b-instruct"
+            model="google/gemini-2.5-flash",
+            messages=[
+                {"role": "system", "content": "You create clear, professional internship handover documents."},
+                {"role": "user", "content": prompt}
+            ],
+            # Optional but recommended OpenRouter headers
+            extra_headers={
+                "HTTP-Referer": "http://localhost:5000",  # Change to your Railway URL later
+                "X-Title": "Intern Handover App"
+            }
+        )
+        ai_summary = response.choices[0].message.content
 
         os.makedirs("outputs", exist_ok=True)
         date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
